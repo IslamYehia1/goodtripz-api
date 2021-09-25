@@ -57,7 +57,6 @@ app.get("/autocomplete/hotels", async (req, res) => {
     } catch (error) {
         console.log("ERROOOOOOOR", error);
         res.send({ error: "ERROR, mate" });
-        return;
     }
 });
 
@@ -81,8 +80,10 @@ app.get("/searchResults/flights/", async (req, res) => {
             originLocationCode: req.query.departure,
             destinationLocationCode: req.query.destination,
             departureDate: req.query.departureDate,
+            returnDate: req.query.returnDate,
             adults: req.query.adultsNumber,
             children: req.query.childrenNumber,
+            max: req.query.max || "10",
         });
         res.send(flightOffers.data);
     } catch (error) {
