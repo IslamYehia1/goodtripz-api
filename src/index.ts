@@ -3,7 +3,7 @@ import jwt from "express-jwt";
 import jwksRsa from "jwks-rsa";
 import { Client } from "@googlemaps/google-maps-services-js";
 import Fuse from "fuse.js";
-import * as airportsDB from "./airports.json";
+// import * as airportsDB from "./airports.json";
 import { GOOGLE_KEY, amadeusClientID, amadeusClientSecret } from "./apiKeys";
 /* Documentation for the Google placeAutocomplete API:
 https://developers.google.com/maps/documentation/places/web-service/autocomplete#maps_http_places_autocomplete_amoeba-txt
@@ -22,7 +22,6 @@ var client = new Client();
 var app = express();
 var options = {
     includeScore: true,
-    // Search in `author` and in `tags` array
     keys: [
         { name: "Name", weight: 0.5 },
         { name: "City", weight: 0.2 },
