@@ -83,6 +83,9 @@ app.get("/searchResults/flights/", async (req, res) => {
             returnDate: req.query.returnDate,
             adults: req.query.adultsNumber,
             children: req.query.childrenNumber,
+            currencyCode: req.query.currency,
+            nonStop: req.query.nonStop,
+            maxPrice: req.query.maxPrice,
             max: req.query.max || "10",
         });
         res.send(flightOffers.data);
