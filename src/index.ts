@@ -2,14 +2,27 @@ import express from "express";
 import jwt from "express-jwt";
 import jwksRsa from "jwks-rsa";
 import { Client } from "@googlemaps/google-maps-services-js";
-import Fuse from "fuse.js";
-import * as airportsDB from "./airports.json";
+import { MongoClient } from "mongodb";
 import { GOOGLE_KEY, amadeusClientID, amadeusClientSecret } from "./apiKeys";
+// import redis from "redis";
 /* Documentation for the Google placeAutocomplete API:
 https://developers.google.com/maps/documentation/places/web-service/autocomplete#maps_http_places_autocomplete_amoeba-txt
 
 Airports Data is coming from: openflights.org
 */
+
+const url = "mongodb://172.17.0.2:27017";
+const mongoClient = new MongoClient(url);
+(async () => {
+    try {
+        await mongoClient.connect();
+        console.log("Connected to MongoDB");
+    } catch (error) {
+        console.log("Couldn't connect to MongdoDB ::: ", error);
+    }
+})();
+const collection = mongoClient.db("Goodtripz").collection("airports");
+
 var Amadeus = require("amadeus");
 
 var amadeus = new Amadeus({
@@ -20,17 +33,7 @@ var cors = require("cors");
 var PORT = process.env.PORT || 8080;
 var client = new Client();
 var app = express();
-var options = {
-    includeScore: true,
-    keys: [
-        { name: "Name", weight: 0.5 },
-        { name: "City", weight: 0.2 },
-        { name: "Country", weight: 0.3 },
-        { name: "IATA", weight: 0.9 },
-    ],
-};
 
-const fuse = new Fuse(airportsDB.results, options);
 // app.use(checkJwt);
 app.use(cors());
 
@@ -64,7 +67,15 @@ app.get("/autocomplete/airports", async (req, res) => {
         return;
     }
     try {
-        const results = fuse.search(`${req.query.query}`, { limit: 5 });
+        const results = await collection
+            .find(
+                { $text: { $search: `${req.query.query}` } },
+                //@ts-ignore
+                { score: { $meta: "textScore" } }
+            )
+            .sort({ sort: { $meta: "textScore" } })
+            .limit(5)
+            .toArray();
         res.send(results);
     } catch (error) {
         console.log("Something wrong with the fuuuuse" + error);
