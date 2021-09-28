@@ -3,16 +3,20 @@ import jwt from "express-jwt";
 import jwksRsa from "jwks-rsa";
 import { Client } from "@googlemaps/google-maps-services-js";
 import { MongoClient } from "mongodb";
-import { GOOGLE_KEY, amadeusClientID, amadeusClientSecret } from "./apiKeys";
-// import redis from "redis";
+// import { GOOGLE_KEY, amadeusClientID, amadeusClientSecret } from "./apiKeys";
 /* Documentation for the Google placeAutocomplete API:
 https://developers.google.com/maps/documentation/places/web-service/autocomplete#maps_http_places_autocomplete_amoeba-txt
 
 Airports Data is coming from: openflights.org
 */
 
-const url = "mongodb://172.17.0.2:27017";
-const mongoClient = new MongoClient(url);
+// const url = "mongodb://172.17.0.1:27017";
+const { GOOGLE_KEY, AMADEUS_CLIENT, AMADEUS_SECRET, MONGO_URL } = process.env;
+if (!(GOOGLE_KEY && AMADEUS_CLIENT && AMADEUS_SECRET && MONGO_URL)) {
+    throw "Enviroment variables needed!! GOOGLE_KEY , AMADEUS_CLIENT, AMADEUS_SECRET , MONGO_URL";
+}
+
+const mongoClient = new MongoClient(MONGO_URL);
 (async () => {
     try {
         await mongoClient.connect();
@@ -26,8 +30,8 @@ const collection = mongoClient.db("Goodtripz").collection("airports");
 var Amadeus = require("amadeus");
 
 var amadeus = new Amadeus({
-    clientId: amadeusClientID,
-    clientSecret: amadeusClientSecret,
+    clientId: AMADEUS_CLIENT,
+    clientSecret: AMADEUS_SECRET,
 });
 var cors = require("cors");
 var PORT = process.env.PORT || 8080;
