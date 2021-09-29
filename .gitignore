@@ -3,3 +3,5 @@
 /dist
 .env
 EXPORT_ENVS.sh
+shipitfile.js
+ecosystem.config.js

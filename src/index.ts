@@ -1,20 +1,21 @@
-import express from "express";
-import jwt from "express-jwt";
-import jwksRsa from "jwks-rsa";
-import { Client } from "@googlemaps/google-maps-services-js";
-import { MongoClient } from "mongodb";
-// import { GOOGLE_KEY, amadeusClientID, amadeusClientSecret } from "./apiKeys";
 /* Documentation for the Google placeAutocomplete API:
 https://developers.google.com/maps/documentation/places/web-service/autocomplete#maps_http_places_autocomplete_amoeba-txt
 
 Airports Data is coming from: openflights.org
 */
+import express from "express";
+import jwt from "express-jwt";
+import jwksRsa from "jwks-rsa";
+import { Client } from "@googlemaps/google-maps-services-js";
+import { MongoClient } from "mongodb";
+const Amadeus = require("amadeus");
+const cors = require("cors");
 
-// const url = "mongodb://172.17.0.1:27017";
 const { GOOGLE_KEY, AMADEUS_CLIENT, AMADEUS_SECRET, MONGO_URL } = process.env;
 if (!(GOOGLE_KEY && AMADEUS_CLIENT && AMADEUS_SECRET && MONGO_URL)) {
     throw "Enviroment variables needed!! GOOGLE_KEY , AMADEUS_CLIENT, AMADEUS_SECRET , MONGO_URL";
 }
+const PORT = process.env.PORT || 8080;
 
 const mongoClient = new MongoClient(MONGO_URL);
 (async () => {
@@ -25,21 +26,17 @@ const mongoClient = new MongoClient(MONGO_URL);
         console.log("Couldn't connect to MongdoDB ::: ", error);
     }
 })();
-const collection = mongoClient.db("Goodtripz").collection("airports");
+const airportsDB = mongoClient.db("Goodtripz").collection("airports");
 
-var Amadeus = require("amadeus");
-
-var amadeus = new Amadeus({
+const amadeus = new Amadeus({
     clientId: AMADEUS_CLIENT,
     clientSecret: AMADEUS_SECRET,
 });
-var cors = require("cors");
-var PORT = process.env.PORT || 8080;
-var client = new Client();
-var app = express();
+const client = new Client();
+const app = express();
+app.use(cors());
 
 // app.use(checkJwt);
-app.use(cors());
 
 app.get("/autocomplete/hotels", async (req, res) => {
     if (typeof req.query.query !== "string") {
@@ -71,7 +68,7 @@ app.get("/autocomplete/airports", async (req, res) => {
         return;
     }
     try {
-        const results = await collection
+        const results = await airportsDB
             .find(
                 { $text: { $search: `${req.query.query}` } },
                 //@ts-ignore
@@ -87,6 +84,13 @@ app.get("/autocomplete/airports", async (req, res) => {
     }
 });
 
+app.get("/airportInfo", async (req, res) => {
+    if (!(typeof req.query.iata !== "string" && req.query.iata.length !== 3)) {
+        return res.send("Error: Pass the 3 letters IATA code");
+    }
+    const airport = await airportsDB.findOne({ iata: req.query.iata });
+    return res.send(airport);
+});
 app.get("/searchResults/flights/", async (req, res) => {
     try {
         const flightOffers = await amadeus.shopping.flightOffersSearch.get({
