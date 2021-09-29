@@ -85,7 +85,7 @@ app.get("/autocomplete/airports", async (req, res) => {
 });
 
 app.get("/airportInfo", async (req, res) => {
-    if (!(typeof req.query.iata !== "string" && req.query.iata.length !== 3)) {
+    if (!(typeof req.query.iata === "string" && req.query.iata.length === 3)) {
         return res.send("Error: Pass the 3 letters IATA code");
     }
     const airport = await airportsDB.findOne({ iata: req.query.iata });
