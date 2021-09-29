@@ -88,8 +88,10 @@ app.get("/airportInfo", async (req, res) => {
     if (!(typeof req.query.iata === "string" && req.query.iata.length === 3)) {
         return res.send("Error: Pass the 3 letters IATA code");
     }
-    const airport = await airportsDB.findOne({ iata: req.query.iata });
-    return res.send(airport);
+    const airport = await airportsDB.findOne({
+        IATA: req.query.iata.toUpperCase(),
+    });
+    res.send(airport);
 });
 app.get("/searchResults/flights/", async (req, res) => {
     try {
