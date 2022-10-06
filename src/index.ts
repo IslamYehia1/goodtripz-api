@@ -7,27 +7,72 @@ import express from "express";
 import jwt from "express-jwt";
 import jwksRsa from "jwks-rsa";
 import { Client } from "@googlemaps/google-maps-services-js";
-import { MongoClient } from "mongodb";
 import axios from "axios";
+import Fuse from "fuse.js";
 const Amadeus = require("amadeus");
 const cors = require("cors");
+const csv = require("csv-parser");
+const fs = require("fs");
+const path = require("path");
+const { performance } = require("perf_hooks");
 
-const { GOOGLE_KEY, AMADEUS_CLIENT, AMADEUS_SECRET, MONGO_URL } = process.env;
-if (!(GOOGLE_KEY && AMADEUS_CLIENT && AMADEUS_SECRET && MONGO_URL)) {
-  throw "Enviroment variables needed!! GOOGLE_KEY , AMADEUS_CLIENT, AMADEUS_SECRET , MONGO_URL";
+var airportsArr: any = [];
+var airportsDBPath: any = path.join(process.cwd(), "/src/modifiedAirports.csv");
+function readCsv() {
+  return new Promise((resolve: any, reject) => {
+    fs.createReadStream(airportsDBPath)
+      .pipe(csv())
+      .on("data", (data: any) => {
+        // Build javascript object
+        airportsArr.push(data);
+      })
+      .on("end", () => {
+        console.log("Done.");
+        // console.log(airportsArr);
+        resolve();
+      })
+      .on("error", reject);
+  });
+}
+
+const options = {
+  includeScore: true,
+  keys: [
+    {
+      name: "name",
+      weight: 0.6,
+    },
+    {
+      name: "municipality",
+      weight: 0.7,
+    },
+  ],
+};
+const iataOptions = {
+  keys: ["iata_code"],
+  useExtendedSearch: true,
+};
+
+const { GOOGLE_KEY, AMADEUS_CLIENT, AMADEUS_SECRET } = process.env;
+if (!(GOOGLE_KEY && AMADEUS_CLIENT && AMADEUS_SECRET)) {
+  throw "Enviroment variables needed!! GOOGLE_KEY , AMADEUS_CLIENT, AMADEUS_SECRET";
 }
 const PORT = process.env.PORT || 8080;
-
-const mongoClient = new MongoClient(MONGO_URL);
+var fuse: any;
+var airportFuse: any;
 (async () => {
   try {
-    await mongoClient.connect();
-    console.log("Connected to MongoDB");
+    await readCsv();
+    console.log("READ THE AIRPORTS DB");
+    const myIndex = Fuse.createIndex(options.keys, airportsArr);
+    const iataIndex = Fuse.createIndex(iataOptions.keys, airportsArr);
+    fuse = new Fuse(airportsArr, options, myIndex);
+    airportFuse = new Fuse(airportsArr, iataOptions, iataIndex);
   } catch (error) {
-    console.log("Couldn't connect to MongdoDB ::: ", error);
+    console.log("COULDN'T READ THE AIRPORTS DB");
+    // console.log("Couldn't connect to MongdoDB ::: ", error);
   }
 })();
-const airportsDB = mongoClient.db("Goodtripz").collection("airports");
 
 const amadeus = new Amadeus({
   clientId: AMADEUS_CLIENT,
@@ -50,6 +95,7 @@ app.get("/autocomplete/hotels", async (req, res) => {
   }
 
   try {
+    var startTime = performance.now();
     const results = await client.placeAutocomplete({
       params: {
         input: `${req.query.query}`,
@@ -69,15 +115,8 @@ app.get("/autocomplete/airports", async (req, res) => {
     return;
   }
   try {
-    const results = await airportsDB
-      .find(
-        { $text: { $search: `${req.query.query}` } },
-        //@ts-ignore
-        { score: { $meta: "textScore" } }
-      )
-      .sort({ sort: { $meta: "textScore" } })
-      .limit(5)
-      .toArray();
+    const results = fuse.search(`${req.query.query}`, { limit: 10 });
+
     res.send(results);
   } catch (error) {
     console.log("Something wrong with the fuuuuse" + error);
@@ -86,13 +125,20 @@ app.get("/autocomplete/airports", async (req, res) => {
 });
 
 app.get("/airportInfo", async (req, res) => {
-  if (!(typeof req.query.iata === "string" && req.query.iata.length === 3)) {
-    return res.send("Error: Pass the 3 letters IATA code");
+  if (
+    !(
+      typeof req.query.iata_code === "string" &&
+      req.query.iata_code.length === 3
+    )
+  ) {
+    return res.send({ error: "Error: Pass the 3 letters IATA code" });
   }
-  const airport = await airportsDB.findOne({
-    IATA: req.query.iata.toUpperCase(),
-  });
-  res.send(airport);
+
+  const airportDetails = airportFuse.search(`=${req.query.iata_code}`);
+  //   const airport = await airportsDB.findOne({
+  //     IATA: req.query.iata.toUpperCase(),
+  //   });
+  res.send(airportDetails);
 });
 app.get("/searchResults/flights/", async (req, res) => {
   try {
