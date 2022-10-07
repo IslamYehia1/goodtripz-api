@@ -17,7 +17,7 @@ const path = require("path");
 const { performance } = require("perf_hooks");
 
 var airportsArr: any = [];
-var airportsDBPath: any = path.join(process.cwd(), "/src/modifiedAirports.csv");
+var airportsDBPath: any = path.join(__dirname, "/modifiedAirports.csv");
 function readCsv() {
   return new Promise((resolve: any, reject) => {
     fs.createReadStream(airportsDBPath)
