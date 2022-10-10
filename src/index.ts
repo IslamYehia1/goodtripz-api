@@ -7,19 +7,19 @@ import express from "express";
 import { Client } from "@googlemaps/google-maps-services-js";
 import axios from "axios";
 import { MeiliSearch } from "meilisearch";
-
+const { GOOGLE_KEY, AMADEUS_CLIENT, AMADEUS_SECRET, MeiliSearchKey } =
+  process.env;
+if (!(GOOGLE_KEY && AMADEUS_CLIENT && AMADEUS_SECRET && MeiliSearchKey)) {
+  throw "Enviroment variables needed!! GOOGLE_KEY , AMADEUS_CLIENT, AMADEUS_SECRET, MeiliSearchKey";
+}
 const millieClient = new MeiliSearch({
   host: "http://localhost:7700/",
-  apiKey: "MASTER_KEY",
+  apiKey: MeiliSearchKey,
 });
 const index = millieClient.index("airports");
 const Amadeus = require("amadeus");
 const cors = require("cors");
 
-const { GOOGLE_KEY, AMADEUS_CLIENT, AMADEUS_SECRET } = process.env;
-if (!(GOOGLE_KEY && AMADEUS_CLIENT && AMADEUS_SECRET)) {
-  throw "Enviroment variables needed!! GOOGLE_KEY , AMADEUS_CLIENT, AMADEUS_SECRET";
-}
 const PORT = process.env.PORT || 8080;
 
 const amadeus = new Amadeus({

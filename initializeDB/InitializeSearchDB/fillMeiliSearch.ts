@@ -1,11 +1,12 @@
+import { MeiliSearch } from "meilisearch";
 const csv = require("csv-parser");
 const fs = require("fs");
 const path = require("path");
-import { MeiliSearch } from "meilisearch";
+
+const { MeiliSearchKey } = process.env;
 
 var airportsArr: any = [];
 var airportsDBPath: any = path.join(__dirname, "/airports.csv");
-
 function readCsv() {
   return new Promise((resolve: any, reject) => {
     fs.createReadStream(airportsDBPath)
@@ -22,7 +23,7 @@ function readCsv() {
 }
 let millieClient = new MeiliSearch({
   host: "http://localhost:7700",
-  apiKey: "MASTER_KEY",
+  apiKey: MeiliSearchKey,
 });
 
 (async () => {
