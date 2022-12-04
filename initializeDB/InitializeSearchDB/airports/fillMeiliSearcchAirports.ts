@@ -10,6 +10,7 @@ var airportsDBPath: any = path.join(__dirname, "/airports.csv");
 function readCsv() {
   return new Promise((resolve: any, reject) => {
     fs.createReadStream(airportsDBPath)
+      // Converts csv into JSON object
       .pipe(csv())
       .on("data", (data: any) => {
         airportsArr.push(data);
@@ -21,6 +22,10 @@ function readCsv() {
       .on("error", reject);
   });
 }
+readCsv().then(() => {
+  console.log(airportsArr);
+});
+
 let millieClient = new MeiliSearch({
   host: "http://localhost:7700",
   apiKey: MeiliSearchKey,
